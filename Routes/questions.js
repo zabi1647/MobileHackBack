@@ -25,7 +25,7 @@ router.get("/questions", async (req, res) => {
     }
     try {
         const questions = await prisma.question.findMany({
-            where: { lessonId: lessonId },
+            where: { courseId: lessonId },
             orderBy: { createdAt: 'asc' },
             include: {
                 student: { select: { id: true, name: true } },

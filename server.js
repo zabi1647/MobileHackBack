@@ -17,6 +17,7 @@ const genAI = new GoogleGenerativeAI("AIzaSyBBCO6gIeUcu0xFAirEjTbbg45znAYI19g");
 const courseRoute = require("./Routes/courses")
 const authRoute = require("./Routes/auth")
 const questionsRoute = require("./Routes/questions")
+const lessonRoute = require("./Routes/lessons")
 
 cloudinary.config({
     cloud_name: "dwxd6ynem",
@@ -180,6 +181,7 @@ app.post('/summarize', async (req, res) => {
   app.use("/api", authRoute)
   app.use("/api", courseRoute)
   app.use("/api", questionsRoute)
+  app.use("/api", lessonRoute)
 
 
 
