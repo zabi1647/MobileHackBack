@@ -93,6 +93,8 @@ router.get("/users/search", async (req, res) => {
             where: { email: email }
         });
 
+        
+
         if (tutor) {
             return res.json({ ...tutor, role: "tutor" });
         }
