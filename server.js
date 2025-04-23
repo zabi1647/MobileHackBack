@@ -6,9 +6,11 @@ require('dotenv').config();
 app.use(cors());
 app.use(express.json());
 
-const CourseRoute = require("./Routes/courses")
 const genAI = new GoogleGenerativeAI("AIzaSyBBCO6gIeUcu0xFAirEjTbbg45znAYI19g");
 
+const courseRoute = require("./Routes/courses")
+const authRoute = require("./Routes/auth")
+const questionsRoute = require("./Routes/questions")
 
 
 
@@ -80,7 +82,12 @@ app.post('/summarize', async (req, res) => {
    });
 
 
-  app.use("/courses", CourseRoute)
+  app.use("/api", authRoute)
+  app.use("/api", courseRoute)
+  app.use("/api", questionsRoute)
+
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server runniing on port ${PORT}`);
