@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model employees {
+  id        Int      @id @default(autoincrement())
+  name      String
+  position  String
+  salary    Decimal  @db.Decimal(10, 2)
+  hire_date DateTime @db.Date
+}
+
+model Tutor {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses Course[]
+  answers Answer[]
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions        Question[]
+  answers          Answer[]
+  flashcards       Flashcard[]
+  lessonProgresses StudentLessonProgress[]
+}
+
+model Course {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?  @db.Text
+  coverPictureUrl String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tutorId String
+  tutor   Tutor  @relation(fields: [tutorId], references: [id])
+
+  lessons   Lesson[]
+  questions Question[]
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?  @db.Text
+  order     Int
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  flashcards        Flashcard[]
+  studentProgresses StudentLessonProgress[]
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  answers Answer[]
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  studentId String?
+  student   Student? @relation(fields: [studentId], references: [id])
+
+  tutorId String?
+  tutor   Tutor?  @relation(fields: [tutorId], references: [id])
+
+  @@index([studentId])
+  @@index([tutorId])
+}
+
+model Flashcard {
+  id        String   @id @default(cuid())
+  front     String   @db.Text
+  back      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([lessonId])
+}
+
+model StudentLessonProgress {
+  id          String    @id @default(cuid())
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@index([studentId])
+  @@index([lessonId])
+}
