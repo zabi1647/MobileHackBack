@@ -3,6 +3,12 @@ const cors = require('cors');
 const app = express();
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
 require('dotenv').config();
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const dotenv = require('dotenv');
+const streamifier = require('streamifier');
+
+
 app.use(cors());
 app.use(express.json());
 
@@ -11,6 +17,95 @@ const genAI = new GoogleGenerativeAI("AIzaSyBBCO6gIeUcu0xFAirEjTbbg45znAYI19g");
 const courseRoute = require("./Routes/courses")
 const authRoute = require("./Routes/auth")
 const questionsRoute = require("./Routes/questions")
+
+cloudinary.config({
+    cloud_name: "dwxd6ynem",
+    api_key: "883323722199575",
+    api_secret: "M7UHPbbBSYddrJZ0k58KJdhiRuw",
+    secure: true 
+});
+
+
+
+const storage = multer.memoryStorage();
+
+
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only images and PDF files are allowed.'), false);
+        }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+app.get('/', (req, res) => {
+    res.send('Welcome to the Cloudinary Upload API! Use POST /upload to upload files.');
+});
+
+
+const uploadToCloudinary = (fileBuffer, mimetype) => {
+    return new Promise((resolve, reject) => {
+        // Determine resource type based on mimetype
+        let resourceType = 'auto'; // Default to auto
+        if (mimetype === 'application/pdf') {
+            resourceType = 'raw'; // Explicitly set to 'raw' for PDFs
+        } else if (mimetype.startsWith('image/')) {
+            resourceType = 'image'; // Explicitly set to 'image' (optional, auto usually works fine for images)
+        }
+        // Add more conditions here if you support other types like video ('video')
+
+        console.log(`Uploading file with determined resource_type: ${resourceType}`); // Debug log
+
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: resourceType, // Use the determined resource type
+                folder: 'my_uploads'       // Optional: specify a folder in Cloudinary
+            },
+            (error, result) => {
+                if (error) {
+                    console.error('Cloudinary Upload Error:', error);
+                    reject(new Error(`Upload to Cloudinary failed: ${error.message}`));
+                } else {
+                    resolve(result);
+                }
+            }
+        );
+
+        streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+    });
+};
+
+
+app.post('/upload', upload.single('file'), (req, res, next) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    // Pass buffer AND mimetype to the upload function
+    uploadToCloudinary(req.file.buffer, req.file.mimetype)
+        .then(result => {
+            // Check the resource_type in the result (for debugging)
+            console.log('Cloudinary Upload Result:', result);
+
+            if (!result || !result.secure_url) {
+                 throw new Error('Cloudinary upload succeeded but returned no URL.');
+            }
+
+            const resultUrl = result.resource_type == "raw" ? result.secure_url  :  result.secure_url
+            res.status(200).json({
+                message: 'File uploaded successfully!',
+                url: resultUrl 
+            });
+        })
+        .catch(error => {
+            // Pass error to the error handling middleware
+            next(error);
+        });
+});
 
 
 
